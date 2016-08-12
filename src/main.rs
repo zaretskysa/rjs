@@ -1,9 +1,9 @@
-extern crate combine;
+#![allow(dead_code)]
 
 extern crate clap;
 use clap::{App, Arg};
 
-mod lexing;
+mod parsing;
 
 
 fn main() {
@@ -16,7 +16,10 @@ fn main() {
                     .get_matches();
     let input = matches.value_of("input").unwrap();
     println!("input: {}", input);
-    // let result = parser(lexing::lexer::tokens).parse(input);
-    let result = lexing::lexer::tokenize(input);
-    println!("result: {:?}", result);
+    
+    // let program = parsing::parser::parse_tokens(&tokens);
+    // println!("program: {:?}", program);
+
+    let state = parsing::parser::parse_St(input);
+    println!("state: {:#?}", state);
 }
