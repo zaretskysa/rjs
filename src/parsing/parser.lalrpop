@@ -3,6 +3,9 @@ use parsing::ast::*;
 
 grammar;
 
+pub Prog: Program =
+    <St*> => Program::Program(<>);
+
 pub St: Statement = {
     EmptySt,
     BlockSt,
