@@ -25,7 +25,7 @@ fn main() {
     let prog = parsing::parser::parse_Prog(input).unwrap();
     println!("state: {:#?}", prog);
 
-    let evaluator = Evaluator::new();
+    let mut evaluator = Evaluator::new();
     let value = evaluator.eval(&prog);
-    println!("value: {:?}", value);
+    println!("result: {:?}", value);
 }

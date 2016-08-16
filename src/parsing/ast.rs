@@ -65,10 +65,19 @@ pub type PAdditiveExpr = Box<AdditiveExpr>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum MultExpr {
-    UnaryMult(i32),
-    Mult(PMultExpr, i32),
-    Div(PMultExpr, i32),
+    UnaryMult(PAccessExpr),
+    Mult(PMultExpr, PAccessExpr),
+    Div(PMultExpr, PAccessExpr),
 }
 
 pub type PMultExpr = Box<MultExpr>;
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum AccessExpr {
+    NumberLiteral(i32),
+//    BoolLiteral(bool),
+    Identifier(String),
+//    Call(String, Vec<PAssignmentExpr>),
+}
+
+pub type PAccessExpr = Box<AccessExpr>;

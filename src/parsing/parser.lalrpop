@@ -63,9 +63,14 @@ pub AddE: AdditiveExpr = {
 };
 
 MultE: MultExpr = {
-    Num => MultExpr::UnaryMult(<>),
-    <l:MultE> "*" <r:Num> => MultExpr::Mult(Box::new(l), r),
-    <l:MultE> "/" <r:Num> => MultExpr::Div(Box::new(l), r),
+    AccessE => MultExpr::UnaryMult(Box::new(<>)),
+    <l:MultE> "*" <r:AccessE> => MultExpr::Mult(Box::new(l), Box::new(r)),
+    <l:MultE> "/" <r:AccessE> => MultExpr::Div(Box::new(l), Box::new(r)),
+};
+
+AccessE: AccessExpr = {
+    Num => AccessExpr::NumberLiteral(<>),
+    Identifier => AccessExpr::Identifier(<>),
 };
 
 Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
