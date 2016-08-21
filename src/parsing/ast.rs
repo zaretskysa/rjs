@@ -1,13 +1,18 @@
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Program {
-    Program(Vec<Statement>),
+    Program(Vec<SourceElement>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum SourceElement {
     StatementSE(Statement),
-    // FunctionDeclSourceElement(FunctionDeclaration),
+    FunctionDeclSE(FunctionDeclaration),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum FunctionDeclaration {
+    FunctionDeclaration(String, Vec<String>, Vec<Statement>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -77,7 +82,7 @@ pub enum AccessExpr {
     NumberLiteral(i32),
 //    BoolLiteral(bool),
     Identifier(String),
-//    Call(String, Vec<PAssignmentExpr>),
+    Call(String, Vec<AssignmentExpr>),
 }
 
 pub type PAccessExpr = Box<AccessExpr>;

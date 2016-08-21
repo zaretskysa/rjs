@@ -4,9 +4,16 @@ use parsing::ast::*;
 grammar;
 
 pub Prog: Program =
-    <St*> => Program::Program(<>);
+    <SourceEl*> => Program::Program(<>);
 
-pub St: Statement = {
+pub SourceEl: SourceElement = {
+    Stmt => SourceElement::StatementSE(<>),
+    FuncDecl => SourceElement::FunctionDeclSE(<>),
+};
+
+pub FuncDecl: FunctionDeclaration = "function" <id:Identifier> "(" <params:IdentifiersList> ")" "{" <stmts:Stmt*> "}" => FunctionDeclaration::FunctionDeclaration(id, params, stmts);
+
+pub Stmt: Statement = {
     EmptySt,
     BlockSt,
     ExprSt,
@@ -16,7 +23,7 @@ pub St: Statement = {
 
 EmptySt: Statement = ";" => Statement::EmptySt;
 
-BlockSt: Statement = "{" <St*> "}" => Statement::BlockSt(<>);
+BlockSt: Statement = "{" <Stmt*> "}" => Statement::BlockSt(<>);
 
 ExprSt: Statement = <AssE> ";" => Statement::ExpressionSt(<>);
 
@@ -27,11 +34,11 @@ IfSt: Statement = {
     IfThen,
 };
 
-IfThen: Statement = "if" "(" <cond:OrE> ")" <then_branch:St> "endif" =>
+IfThen: Statement = "if" "(" <cond:OrE> ")" <then_branch:Stmt> "endif" =>
                                 Statement::IfSt(cond, Box::new(then_branch), Option::None);
 
 
-IfThenElse: Statement = "if" "(" <cond:OrE> ")" <then_branch:St> "else" <else_branch:St> "endif" =>
+IfThenElse: Statement = "if" "(" <cond:OrE> ")" <then_branch:Stmt> "else" <else_branch:Stmt> "endif" =>
                                 Statement::IfSt(cond, Box::new(then_branch), Option::Some(Box::new(else_branch)));
 
 
@@ -71,9 +78,24 @@ MultE: MultExpr = {
 AccessE: AccessExpr = {
     Num => AccessExpr::NumberLiteral(<>),
     Identifier => AccessExpr::Identifier(<>),
+    <id:Identifier> "(" <params:AssExprList> ")" => AccessExpr::Call(id, params),
 };
+
+AssExprList = Comma<AssE>;
 
 Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
 
 Identifier: String = r"[a-zA-Z][a-zA-Z0-9]*" => String::from_str(<>).unwrap();
 
+pub IdentifiersList = Comma<Identifier>;
+
+Comma<T>: Vec<T> = {
+    <v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};

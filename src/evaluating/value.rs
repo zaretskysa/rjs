@@ -1,7 +1,9 @@
+use parsing::ast::*;
 
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
+    Function(FunctionDeclaration),
     Number(i32),
     Undefined,
 }

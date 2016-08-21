@@ -2,14 +2,15 @@ use std::collections::HashMap;
 
 use parsing::ast::*;
 use evaluating::value::*;
+use evaluating::lexical_stack::*;
 
 pub struct Evaluator {
-    env: HashMap<String, Value>,
+    env: LexicalStack,
 }
 
 impl Evaluator {
     pub fn new() -> Evaluator {
-        Evaluator{env: HashMap::new()}
+        Evaluator{env: LexicalStack::new()}
     }
 
     pub fn eval(&mut self, prog: &Program) -> Value {
@@ -17,12 +18,25 @@ impl Evaluator {
     }
 
     pub fn eval_program(&mut self, prog: &Program) -> Value {
-        let &Program::Program(ref stmts) = prog;
+        let &Program::Program(ref src_elements) = prog;
         let mut last_result = Value::Undefined;
-        for st in stmts {
-            last_result = self.eval_statement(st);
+        for el in src_elements {
+            last_result = self.eval_source_element(el);
         }
         return last_result
+    }
+
+    fn eval_source_element(&mut self, el: &SourceElement) -> Value {
+        match el {
+            &SourceElement::StatementSE(ref stmt) => self.eval_statement(stmt),
+            &SourceElement::FunctionDeclSE(ref decl) => self.eval_func_decl(decl),
+        }
+    }
+
+    fn eval_func_decl(&mut self, decl: &FunctionDeclaration) -> Value {
+        let &FunctionDeclaration::FunctionDeclaration(ref id, _, _) = decl;
+        self.env.insert(id.clone(), Value::Function(decl.clone()));
+        Value::Undefined
     }
 
     fn eval_statement(&mut self, st: &Statement) -> Value {
@@ -109,14 +123,9 @@ impl Evaluator {
     fn eval_access_expr(&mut self, expr: &AccessExpr) -> Value {
         match expr {
             &AccessExpr::NumberLiteral(num) => Value::Number(num),
-            &AccessExpr::Identifier(ref id) => match self.env.get(id) {
-                Some(ref val) => {
-                    (*val).clone()
-                },
-                None => Value::Undefined,
-            }
+            &AccessExpr::Identifier(ref id) => self.env.get(id),
+            &AccessExpr::Call(ref id, ref params) => Value::Undefined,
         }
     }
-
 }
 
