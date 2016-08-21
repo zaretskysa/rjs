@@ -1,10 +1,7 @@
 #![allow(dead_code)]
 
-use std::collections::HashMap;
-use std::cell::RefCell;
-use std::rc::Rc;
-
 extern crate clap;
+
 use clap::{App, Arg};
 
 mod parsing;

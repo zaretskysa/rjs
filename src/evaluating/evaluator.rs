@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use parsing::ast::*;
 use evaluating::value::*;
 use evaluating::lexical_stack::*;
@@ -45,18 +43,18 @@ impl Evaluator {
             &Statement::BlockSt(ref stmts) => self.eval_statements(stmts),
             &Statement::ExpressionSt(ref expr) => self.eval_expression(expr),
             &Statement::VarDeclSt(ref id, ref expr) => self.eval_var_decl(id, expr),
-            &Statement::IfSt(ref expr, ref st, ref else_st) => Value::Undefined,
+            &Statement::IfSt(ref _expr, ref _st, ref _else_st) => Value::Undefined,
         }
     }
 
-    fn eval_statements(&mut self, stmts: &Vec<Statement>) -> Value {
+    fn eval_statements(&mut self, _stmts: &Vec<Statement>) -> Value {
         Value::Undefined
     }
 
     fn eval_expression(&mut self, expr: &AssignmentExpr) -> Value {
         match expr {
             &AssignmentExpr::UnaryAssignment(ref logical_or) => self.eval_logical_or_expr(logical_or.as_ref()),
-            &AssignmentExpr::BinaryAssignment(ref id, ref logical_or) => Value::Undefined,
+            &AssignmentExpr::BinaryAssignment(ref _id, ref _logical_or) => Value::Undefined,
         }
     }
 
@@ -69,14 +67,14 @@ impl Evaluator {
     fn eval_logical_or_expr(&mut self, expr: &LogicalOrExpr) -> Value {
         match expr {
             &LogicalOrExpr::UnaryOr(ref logical_and) => self.eval_logical_and_expr(logical_and.as_ref()),
-            &LogicalOrExpr::BinaryOr(ref logical_or, ref logicalAnd) => Value::Undefined,
+            &LogicalOrExpr::BinaryOr(ref _logical_or, ref _logical_and) => Value::Undefined,
         }
     }
 
     fn eval_logical_and_expr(&mut self, expr: &LogicalAndExpr) -> Value {
         match expr {
             &LogicalAndExpr::UnaryAnd(ref eq_expr) => self.eval_equality_expr(eq_expr.as_ref()),
-            &LogicalAndExpr::BinaryAnd(ref logical_and, ref eq) => Value::Undefined,
+            &LogicalAndExpr::BinaryAnd(ref _logical_and, ref _eq) => Value::Undefined,
         }
     }
 
@@ -124,7 +122,7 @@ impl Evaluator {
         match expr {
             &AccessExpr::NumberLiteral(num) => Value::Number(num),
             &AccessExpr::Identifier(ref id) => self.env.get(id),
-            &AccessExpr::Call(ref id, ref params) => Value::Undefined,
+            &AccessExpr::Call(ref _id, ref _params) => Value::Undefined,
         }
     }
 }
