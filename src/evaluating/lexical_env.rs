@@ -29,7 +29,10 @@ impl LexicalEnv {
     pub fn get(&self, id: &String) -> Value {
         match self.records.get(id) {
             Option::Some(ref value) => (*value).clone(),
-            Option::None => Value::Undefined,
+            Option::None => match self.outer {
+                Option::None => Value::Undefined,
+                Option::Some(ref parent) => parent.borrow().get(id),
+            }
         }
     }
 }

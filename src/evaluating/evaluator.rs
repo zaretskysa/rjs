@@ -47,8 +47,12 @@ impl Evaluator {
         }
     }
 
-    fn eval_statements(&mut self, _stmts: &Vec<Statement>) -> Value {
-        Value::Undefined
+    fn eval_statements(&mut self, stmts: &Vec<Statement>) -> Value {
+        let mut result = Value::Undefined;
+        for st in stmts {
+            result = self.eval_statement(st);
+        }
+        return result;
     }
 
     fn eval_expression(&mut self, expr: &AssignmentExpr) -> Value {
@@ -122,8 +126,29 @@ impl Evaluator {
         match expr {
             &AccessExpr::NumberLiteral(num) => Value::Number(num),
             &AccessExpr::Identifier(ref id) => self.env.get(id),
-            &AccessExpr::Call(ref _id, ref _params) => Value::Undefined,
+            &AccessExpr::Call(ref id, ref params) => self.eval_func_call(id, params),
         }
+    }
+
+    fn eval_func_call(&mut self, func_name: &String, params: &Vec<AssignmentExpr>) -> Value {
+        let func = self.env.get(func_name);
+        self.env.enter_scope();
+
+        let result = match func {
+            Value::Function(FunctionDeclaration::FunctionDeclaration(_, formal_params, body)) => {
+                assert!(params.len() == formal_params.len());
+                for i in 0..params.len() {
+                    let ref param_name = formal_params[i];
+                    let param_value = self.eval_expression(&params[i]);
+                    self.env.insert(param_name.clone(), param_value);
+                }
+                self.eval_statements(&body)
+            },
+            _ => panic!("Not a function"),
+        };
+
+        self.env.leave_scope();
+        return result;
     }
 }
 
