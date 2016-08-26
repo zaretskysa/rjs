@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+#![feature(plugin)]
+#![plugin(peg_syntax_ext)]
+
 extern crate clap;
 
 use clap::{App, Arg};
@@ -7,7 +10,12 @@ use clap::{App, Arg};
 mod parsing;
 mod evaluating;
 
-use evaluating::evaluator::*;
+// use evaluating::evaluator::*;
+// use parsing::parser::*;
+
+
+
+peg_file! grammar("grammar.rustpeg");
 
 fn main() {
     let matches = App::new("rjs")
@@ -21,10 +29,10 @@ fn main() {
     let input = matches.value_of("input").unwrap();
     println!("input: {}", input);
 
-    let prog = parsing::parser::parse_Prog(input).unwrap();
+    let prog = grammar::Statement(input).unwrap();
     println!("state: {:#?}", prog);
 
-    let mut evaluator = Evaluator::new();
-    let value = evaluator.eval(&prog);
-    println!("result: {:?}", value);
+    // let mut evaluator = Evaluator::new();
+    // let value = evaluator.eval(&prog);
+    // println!("result: {:?}", value);
 }

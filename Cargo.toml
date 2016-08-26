@@ -2,14 +2,8 @@
 name = "rjs"
 version = "0.0.1"
 authors = [ "Sergey Zaretsky <zaretskysa@gmail.com>" ]
-build = "src/build.rs" # LALRPOP preprocessing
+#build = "src/build.rs" # LALRPOP preprocessing
 
 [dependencies]
 clap = "2"
-
-# Add a dependency on the LALRPOP runtime library:
-[dependencies.lalrpop-util]
-version = "0.12.0"
-
-[build-dependencies.lalrpop]
-version = "0.12.0"
+peg = "0.3.0"

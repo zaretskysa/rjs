@@ -1,0 +1,415 @@
+use parsing::ast::*;
+
+#[pub]
+Statement -> ()
+    // = Block
+    // / VariableStatement
+    // / EmptyStatement
+    = ExpressionStatement
+    // / IfStatement
+    // / IterationStatement
+    // / ContinueStatement
+    // / BreakStatement
+    // / ReturnStatement
+    // / WithStatement
+    // / LabelledStatement
+    // / SwitchStatement
+    // / ThrowStatement
+    // / TryStatement
+    // / DebuggerStatement
+
+StatementList = Statement+
+
+Block = OpenBrace Statement* CloseBrace
+
+VariableStatement = Var VariableDeclarationList
+
+VariableDeclarationList = VariableDeclaration (Comma VariableDeclaration)*
+
+VariableDeclarationListNoIn = VariableDeclarationNoIn (Comma VariableDeclarationNoIn)*
+
+VariableDeclaration -> () = Identifier Initializer? {()}
+
+VariableDeclarationNoIn -> () = Identifier InitializerNoIn? {()}
+
+Initializer = AssignmentExpression
+
+InitializerNoIn = AssignmentExpressionNoIn
+
+EmptyStatement = Semicolon
+
+ExpressionStatement = !(OpenBrace / Function) Expression Semicolon
+
+IfStatement
+    = If OpenParen Expression CloseParen Statement Else Statement
+    / If OpenParen Expression CloseParen Statement
+
+IterationStatement
+    = Do Statement While OpenParen Expression CloseParen Semicolon
+    / While OpenParen Expression CloseParen Statement
+    / For OpenParen ExpressionNoIn? Semicolon Expression? Semicolon Expression? CloseParen Statement
+    / For OpenParen Var VariableDeclarationListNoIn Semicolon Expression? Semicolon Expression? CloseParen Statement
+    / For OpenParen LeftHandSideExpression In Expression CloseParen Statement
+    / For OpenParen Var VariableDeclarationNoIn In Expression CloseParen Statement
+
+ContinueStatement
+    = Continue Semicolon
+    / Continue Identifier Semicolon // fixme: no line terminator
+
+BreakStatement
+    = Break Semicolon
+    / Break Identifier Semicolon // fixme
+
+ReturnStatement
+    = Return Semicolon
+    / Return Identifier Semicolon // fixme
+
+WithStatement
+    = With OpenParen Expression CloseParen Statement
+
+SwitchStatement
+    = Switch OpenParen Expression CloseParen CaseBlock
+
+CaseBlock
+    = OpenBrace CaseClause* CloseBrace
+    / OpenBrace CaseClause* DefaultClause CaseClause* CloseBrace
+
+CaseClause
+    = Case Expression Colon StatementList? {()}
+
+DefaultClause
+    = Default Colon StatementList? {()}
+
+#[pub]
+PrimaryExpression -> ()
+    = This
+    / Identifier
+    / Literal
+    / ArrayLiteral
+    / ObjectLiteral
+   / OpenParen Expression CloseParen
+
+ArrayLiteral
+    = OpenBracket Elision? CloseBracket
+    / OpenBracket ElementList Elision? CloseBracket
+
+ElementList
+    = Elision? AssignmentExpression
+    / ElementList Comma Elision? AssignmentExpression
+
+ObjectLiteral
+    = OpenBrace CloseBrace
+    / OpenBrace PropertyNameAndValueList Comma? CloseBrace
+
+PropertyNameAndValueList
+    = PropertyAssignment (Comma PropertyAssignment)*
+
+PropertyAssignment 
+    = PropertyName Colon AssignmentExpression
+    / Get PropertyName Parens OpenBrace FunctionBody CloseBrace
+    / Set PropertyName OpenParen PropertySetParameterList CloseParen OpenBrace FunctionBody CloseBrace
+
+PropertyName
+    = Identifier // fixme
+    // / StringLiteral
+    / NumericLiteral
+
+PropertySetParameterList = Identifier
+
+Elision = Comma+
+
+Literal
+    = NullLiteral
+    / BooleanLiteral
+    / NumericLiteral
+    // / StringLiteral
+
+NullLiteral = "null"
+
+BooleanLiteral = ("true" / "false")
+
+NumericLiteral = Digit+ _
+
+#[pub]
+MemberExpression
+    = PrimaryExpression
+    / FunctionExpression
+    / MemberExpression OpenBracket Expression CloseBracket
+    / MemberExpression Dot IdentifierName
+    / New MemberExpression Arguments
+
+NewExpression
+    = MemberExpression
+    / New NewExpression
+
+CallExpression
+    = MemberExpression Arguments
+    / CallExpression Arguments
+    / CallExpression OpenBracket Expression CloseBracket
+    / CallExpression Dot IdentifierName
+
+LeftHandSideExpression
+    = NewExpression
+    / CallExpression
+
+PostfixExpression
+    = LeftHandSideExpression
+    / LeftHandSideExpression !Eol PlusPlus
+    / LeftHandSideExpression !Eol MinusMinus
+
+#[pub]
+UnaryExpression
+    = Delete UnaryExpression
+    / Void UnaryExpression
+    / TypeOf UnaryExpression
+    / PlusPlus UnaryExpression
+    / MinusMinus UnaryExpression
+    / Plus UnaryExpression
+    / Minus UnaryExpression
+    / Tilde UnaryExpression
+    / Exclamation UnaryExpression
+    / PostfixExpression
+
+#[pub]
+MultiplicativeExpression
+    = UnaryExpression (MultiplicativeOperation UnaryExpression)*
+
+MultiplicativeOperation = Mult / Div / Modulus
+
+#[pub]
+AdditiveExpression
+    = MultiplicativeExpression (AdditiveOperation MultiplicativeExpression)*
+
+AdditiveOperation = Plus / Minus
+
+
+ShiftExpression
+    = AdditiveExpression (ShiftOperation AdditiveExpression)*
+
+ShiftOperation = LeftShift / SignedRightShift / UnsignedRightShift
+
+#[pub]
+RelationalExpression
+    = ShiftExpression (RelationalOperation ShiftExpression)*
+
+RelationalExpressionNoIn
+    = ShiftExpression (RelationalOperationNoIn ShiftExpression)*
+
+RelationalOperationNoIn
+    = Less
+    / Greater
+    / LessEqual
+    / GreaterEqual
+    / InstanceOf
+
+RelationalOperation = RelationalOperationNoIn / In
+
+#[pub]
+EqualityExpression
+    = RelationalExpression (RelationalOperation RelationalExpression)*
+
+EqualityExpressionNoIn
+    = RelationalExpressionNoIn (EqualityOperation RelationalExpressionNoIn)*
+
+
+EqualityOperation = Equal / NotEqual / StrictEqual / StrictNotEqual
+
+
+BitwiseAndExpression
+    = EqualityExpression (BitwiseAnd EqualityExpression)*
+
+BitwiseAndExpressionNoIn
+    = EqualityExpressionNoIn (BitwiseAnd EqualityExpressionNoIn)*
+
+
+
+
+BitwiseXorExpression
+    = BitwiseAndExpression (BitwiseXor BitwiseAndExpression)*
+
+BitwiseXorExpressionNoIn
+    = BitwiseAndExpressionNoIn (BitwiseXor BitwiseAndExpressionNoIn)*
+
+
+
+BitwiseOrExpression
+    = BitwiseXorExpression (BitwiseOr BitwiseXorExpression)*
+
+BitwiseOrExpressionNoIn
+    = BitwiseXorExpressionNoIn (BitwiseOr BitwiseXorExpressionNoIn)*
+
+
+
+
+LogicalAndExpression
+    = BitwiseOrExpression (LogicalAnd BitwiseOrExpression)*
+
+LogicalAndExpressionNoIn
+    = BitwiseOrExpressionNoIn (LogicalAnd BitwiseOrExpressionNoIn)*
+
+
+#[pub]
+LogicalOrExpression
+    = LogicalAndExpression (LogicalOr LogicalAndExpression)*
+
+LogicalOrExpressionNoIn
+    = LogicalAndExpressionNoIn (LogicalOr LogicalAndExpressionNoIn)*
+
+
+ConditionalExpression
+    = LogicalOrExpression (QuestionMark AssignmentExpression Colon AssignmentExpression)*
+
+ConditionalExpressionNoIn
+    = LogicalOrExpressionNoIn (QuestionMark AssignmentExpression Colon AssignmentExpressionNoIn)*
+
+
+AssignmentExpression
+    = ConditionalExpression
+    / LeftHandSideExpression Assign AssignmentExpression
+    / LeftHandSideExpression AssignmentOperator AssignmentExpression
+
+AssignmentExpressionNoIn
+    = ConditionalExpressionNoIn
+    / LeftHandSideExpression Assign AssignmentExpressionNoIn
+    / LeftHandSideExpression AssignmentOperator AssignmentExpressionNoIn
+
+AssignmentOperator
+    = MultAssign
+    / DivAssign
+    / ModulusAssign
+    / PlusAssign
+    / MinusAssign
+    / LeftShiftAssign
+    / SignedRightShiftAssign
+    / UnsignedRightShiftAssign
+    / BitwiseAndAssign
+    / BitwiseXorAssign
+    / BitwiseOrAssign
+
+#[pub]
+Expression
+    = AssignmentExpression (Comma AssignmentExpression)*
+
+ExpressionNoIn
+    = AssignmentExpressionNoIn (Comma AssignmentExpressionNoIn)*
+
+Arguments = OpenParen ArgumentList CloseParen
+
+ArgumentList = AssignmentExpression ++ Comma
+
+FunctionBody = "!" // fixme
+FunctionExpression = "!" // fixme
+
+This = "this" _
+Get = "get" _
+Set = "set" _
+New = "new" _
+Void = "void" _
+Delete = "delete" _
+TypeOf = "typeof" _
+InstanceOf = "instanceof" _
+In = "in" _
+Var = "var" _
+Function = "function" _
+If = "if" _
+Else = "else" _
+For = "for" _
+Do = "do" _
+While = "while" _
+Continue = "continue" _
+Return = "return" _
+With = "with" _
+Break = "break" _
+Switch = "switch" _
+Case = "case" _
+Try = "try" _
+Default = "default" _
+
+
+
+OpenBracket = "[" _
+CloseBracket = "]" _
+OpenBrace = "{" _
+CloseBrace = "}" _
+OpenParen = "(" _
+CloseParen = ")" _
+Parens = OpenParen CloseParen
+Comma = "," _
+Colon = ":" _
+Dot = "." _
+PlusPlus = "++" _
+MinusMinus = "--" _
+Exclamation = "!" _
+Tilde = "~" _
+Plus = "+" _
+Minus = "-" _
+Mult = "*" _
+Div = "/" _
+Modulus = "%" _
+LeftShift = "<<" _
+SignedRightShift = ">>" _
+UnsignedRightShift = ">>>" _
+Less = "<" _
+Greater = ">" _
+LessEqual = "<=" _
+GreaterEqual = ">=" _
+Equal = "==" _
+NotEqual = "!=" _
+StrictEqual = "===" _
+StrictNotEqual = "!==" _
+BitwiseAnd = "&" _
+BitwiseOr = "|" _
+BitwiseXor = "^" _
+LogicalAnd = "&&" _
+LogicalOr = "||" _
+QuestionMark = "?" _
+Assign = "=" _
+MultAssign = "*=" _
+DivAssign = "/=" _
+ModulusAssign = "%=" _
+PlusAssign = "+=" _
+MinusAssign = "-=" _
+LeftShiftAssign = "<<=" _
+SignedRightShiftAssign = ">>=" _
+UnsignedRightShiftAssign = ">>>=" _
+BitwiseOrAssign = "|=" _
+BitwiseXorAssign = "^=" _
+BitwiseAndAssign = "&|" _
+Semicolon = ";" _
+
+Identifier = ((Letter / "_") (Letter / Digit / "_")*) _
+
+IdentifierName = Identifier // fixme
+
+Digit
+    = [0-9]
+
+Letter
+    = LowerCaseLetter
+    / UpperCaseLetter
+
+LowerCaseLetter
+    = [a-z]
+
+UpperCaseLetter
+    = [A-Z]
+
+Eol
+    = "\n"
+    / "\r\n"
+    / "\r"
+    / "\u{2028}"
+    / "\u{2029}"
+
+EolChar
+    = [\n\r\u2028\u2029]
+
+Whitespace
+    = [ \t\u{00A0}\u{FEFF}\u{1680}\u{180E}\u{2000}-\u{200A}\u{202F}\u{205F}\u{3000}] // \v\f removed
+
+_ = (Whitespace / Eol)*
+
+__ = (Whitespace / Eol)+
+
+
+
