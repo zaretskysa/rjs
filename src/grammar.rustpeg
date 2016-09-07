@@ -81,58 +81,91 @@ DefaultClause
     = Default Colon StatementList? {()}
 
 #[pub]
-PrimaryExpression -> ()
-    = This
-    / Identifier
-    / Literal
-    / ArrayLiteral
-    / ObjectLiteral
-   / OpenParen Expression CloseParen
+PrimaryExpression -> PrimaryExpression
+    = This {PrimaryExpression::This}
+    / Identifier {PrimaryExpression::Identifier(String::from(match_str))}
+    / lit:Literal {PrimaryExpression::Literal(lit)}
+    / ArrayLiteral {PrimaryExpression::ArrayLiteral}
+    / ObjectLiteral {PrimaryExpression::ObjectLiteral}
+    / OpenParen Expression CloseParen {PrimaryExpression::Expression}
 
-ArrayLiteral
-    = OpenBracket Elision? CloseBracket
-    / OpenBracket ElementList Elision? CloseBracket
+#[pub]
+ArrayLiteral -> Vec<Option<()>>
+    = OpenBracket CloseBracket {vec![]}
+    / OpenBracket elements:ArrayElements CloseBracket {elements}
 
+#[pub]
+ArrayElements -> Vec<Option<()>>
+    = ArrayElement ** Comma
+
+ArrayElement -> Option<()>
+    = (&Comma / &CloseBracket) {Option::None}
+    / AssignmentExpression {Option::Some(())}
+
+#[pub]
 ElementList
     = Elision? AssignmentExpression
     / ElementList Comma Elision? AssignmentExpression
 
+#[pub]
 ObjectLiteral
     = OpenBrace CloseBrace
     / OpenBrace PropertyNameAndValueList Comma? CloseBrace
 
+#[pub]
 PropertyNameAndValueList
     = PropertyAssignment (Comma PropertyAssignment)*
 
+#[pub]
 PropertyAssignment 
     = PropertyName Colon AssignmentExpression
     / Get PropertyName Parens OpenBrace FunctionBody CloseBrace
     / Set PropertyName OpenParen PropertySetParameterList CloseParen OpenBrace FunctionBody CloseBrace
 
+#[pub]
 PropertyName
     = Identifier // fixme
-    // / StringLiteral
-    / NumericLiteral
+    / StringLiteral {()}
+    / NumericLiteral {()}
 
+#[pub]
 PropertySetParameterList = Identifier
+
 
 Elision = Comma+
 
-Literal
+#[pub]
+Literal -> Literal
     = NullLiteral
     / BooleanLiteral
     / NumericLiteral
-    // / StringLiteral
+    / StringLiteral
 
-NullLiteral = "null"
+NullLiteral -> Literal = "null" _ { Literal::Null }
 
-BooleanLiteral = ("true" / "false")
+BooleanLiteral -> Literal = ("true" / "false") _ {
+    match match_str {
+        "true" => Literal::Bool(true),
+        _ => Literal::Bool(false),
+    }    
+}
 
-NumericLiteral = Digit+ _
+NumericLiteral -> Literal = Digit+ _ {
+    let val = match_str.parse::<i32>().unwrap();
+    Literal::Number(val)
+} // fixme
+    
+StringLiteral -> Literal
+    = "\"" DoubleStringCharacter* "\"" { Literal::String(String::from(match_str)) }
+    / "'" SingleStringCharacter* "'" { Literal::String(String::from(match_str)) }
+
+SingleStringCharacter = !"'" .
+
+DoubleStringCharacter = !"\"" .
 
 #[pub]
 MemberExpression
-    = PrimaryExpression
+    = PrimaryExpression {()}
     / FunctionExpression
     / MemberExpression OpenBracket Expression CloseBracket
     / MemberExpression Dot IdentifierName
@@ -325,6 +358,36 @@ Case = "case" _
 Try = "try" _
 Default = "default" _
 
+ReservedWord
+    = "this"
+    / "get"
+    / "set"
+    / "new"
+    / "void"
+    / "delete"
+    / "typeof"
+    / "instanceof"
+    / "in"
+    / "var"
+    / "function"
+    / "if"
+    / "else"
+    / "for"
+    / "do"
+    / "while"
+    / "continue"
+    / "return"
+    / "with"
+    / "break"
+    / "switch"
+    / "case"
+    / "try"
+    / "default"
+    / "null"
+    / "true"
+    / "false"
+
+
 
 
 OpenBracket = "[" _
@@ -341,29 +404,29 @@ PlusPlus = "++" _
 MinusMinus = "--" _
 Exclamation = "!" _
 Tilde = "~" _
-Plus = "+" _
-Minus = "-" _
-Mult = "*" _
-Div = "/" _
+Plus = "+" !"+" _
+Minus = "-" !"-" _
+Mult = "*" !"=" _
+Div = "/" !"=" _
 Modulus = "%" _
 LeftShift = "<<" _
-SignedRightShift = ">>" _
+SignedRightShift = ">>" !">" _
 UnsignedRightShift = ">>>" _
-Less = "<" _
-Greater = ">" _
+Less = "<" !("<" / "=") _
+Greater = ">" !(">" / "=") _
 LessEqual = "<=" _
 GreaterEqual = ">=" _
-Equal = "==" _
-NotEqual = "!=" _
+Equal = "==" !"=" _
+NotEqual = "!=" !"=" _
 StrictEqual = "===" _
 StrictNotEqual = "!==" _
-BitwiseAnd = "&" _
-BitwiseOr = "|" _
-BitwiseXor = "^" _
+BitwiseAnd = "&" !("&" / "=") _
+BitwiseOr = "|" !("|" / "=") _
+BitwiseXor = "^" !"=" _
 LogicalAnd = "&&" _
 LogicalOr = "||" _
 QuestionMark = "?" _
-Assign = "=" _
+Assign = "=" !"=" _
 MultAssign = "*=" _
 DivAssign = "/=" _
 ModulusAssign = "%=" _
@@ -377,9 +440,18 @@ BitwiseXorAssign = "^=" _
 BitwiseAndAssign = "&|" _
 Semicolon = ";" _
 
-Identifier = ((Letter / "_") (Letter / Digit / "_")*) _
+IdentifierName = IdentifierStart IdentifierPart*
 
-IdentifierName = Identifier // fixme
+Identifier =  !(ReservedWord !IdentifierPart) IdentifierName _
+
+IdentifierStart
+    = Letter
+    / "$"
+    / "_"
+
+IdentifierPart
+    = IdentifierStart
+    / Digit
 
 Digit
     = [0-9]
@@ -404,12 +476,27 @@ Eol
 EolChar
     = [\n\r\u2028\u2029]
 
-Whitespace
+WhiteSpace
     = [ \t\u{00A0}\u{FEFF}\u{1680}\u{180E}\u{2000}-\u{200A}\u{202F}\u{205F}\u{3000}] // \v\f removed
 
-_ = (Whitespace / Eol)*
+_ = (WhiteSpace / Eol)*
 
-__ = (Whitespace / Eol)+
+__ = (WhiteSpace / Eol)+
 
+LineTerminatorSequence
+    = LF
+    / CR !LF
+    / LS
+    / PS
+    / CR LF
 
+LineTerminator
+    = LF
+    / CR
+    / LS
+    / PS
 
+LF = "\u000a" // Line Feed
+CR = "\u000d" // CarriageReturn
+LS = "\u2028" // LineSeparator
+PS = "\u2029" // ParagraphSeparator

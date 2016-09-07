@@ -86,3 +86,31 @@ pub enum AccessExpr {
 }
 
 pub type PAccessExpr = Box<AccessExpr>;
+
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Literal {
+    Null,
+    Number(i32),
+    String(String),
+    Bool(bool),
+}
+
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum PrimaryExpression {
+    This,
+    Identifier(String),
+    Literal(Literal),
+    ArrayLiteral,
+    ObjectLiteral,
+    Expression,
+}
+
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Expression {
+    Expression,
+}
+
+pub type PExpression = Box<Expression>;
