@@ -86,7 +86,7 @@ PrimaryExpression -> PrimaryExpression
     / Identifier {PrimaryExpression::Identifier(String::from(match_str))}
     / lit:Literal {PrimaryExpression::Literal(lit)}
     / ArrayLiteral {PrimaryExpression::ArrayLiteral}
-    / ObjectLiteral {PrimaryExpression::ObjectLiteral}
+    / ObjectLiteral
     / OpenParen Expression CloseParen {PrimaryExpression::Expression}
 
 #[pub]
@@ -108,23 +108,33 @@ ElementList
     / ElementList Comma Elision? AssignmentExpression
 
 #[pub]
-ObjectLiteral
-    = OpenBrace CloseBrace
-    / OpenBrace PropertyNameAndValueList Comma? CloseBrace
+ObjectLiteral -> PrimaryExpression
+    = OpenBrace CloseBrace 
+        {PrimaryExpression::ObjectLiteral(vec![])}
+    / OpenBrace props:PropertyNameAndValueList Comma? CloseBrace 
+        {PrimaryExpression::ObjectLiteral(props)}
 
 #[pub]
-PropertyNameAndValueList
-    = PropertyAssignment (Comma PropertyAssignment)*
+PropertyNameAndValueList -> Vec<PropertyAssignment>
+    = head:PropertyAssignment tail:(Comma ass:PropertyAssignment {ass})*
+        {
+            let mut v = vec![head];
+            v.extend(tail.iter().cloned());
+            v
+        }
 
 #[pub]
-PropertyAssignment 
-    = PropertyName Colon AssignmentExpression
-    / Get PropertyName Parens OpenBrace FunctionBody CloseBrace
+PropertyAssignment -> PropertyAssignment
+    = PropertyName Colon AssignmentExpression 
+        {PropertyAssignment::FieldValue}
+    / Get PropertyName Parens OpenBrace FunctionBody CloseBrace 
+        {PropertyAssignment::Getter}
     / Set PropertyName OpenParen PropertySetParameterList CloseParen OpenBrace FunctionBody CloseBrace
+        {PropertyAssignment::Setter}
 
 #[pub]
 PropertyName
-    = Identifier // fixme
+    = IdentifierName {()}
     / StringLiteral {()}
     / NumericLiteral {()}
 

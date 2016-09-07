@@ -103,7 +103,7 @@ pub enum PrimaryExpression {
     Identifier(String),
     Literal(Literal),
     ArrayLiteral,
-    ObjectLiteral,
+    ObjectLiteral(Vec<PropertyAssignment>),
     Expression,
 }
 
@@ -114,3 +114,10 @@ pub enum Expression {
 }
 
 pub type PExpression = Box<Expression>;
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum PropertyAssignment {
+    FieldValue,
+    Getter,
+    Setter,
+}

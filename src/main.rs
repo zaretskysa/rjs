@@ -29,8 +29,8 @@ fn main() {
     let input = matches.value_of("input").unwrap();
     println!("input: {}", input);
 
-    // let prog = grammar::PrimaryExpression(input).unwrap();
-    let prog = grammar::ObjectLiteral(input).unwrap();
+    let prog = grammar::PrimaryExpression(input).unwrap();
+    // let prog = grammar::ObjectLiteral(input).unwrap();
     println!("state: {:#?}", prog);
 
     // let mut evaluator = Evaluator::new();
