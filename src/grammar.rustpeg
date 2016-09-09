@@ -32,7 +32,7 @@ VariableDeclaration -> () = Identifier Initializer? {()}
 
 VariableDeclarationNoIn -> () = Identifier InitializerNoIn? {()}
 
-Initializer = AssignmentExpression
+Initializer = AssignmentExpression {()}
 
 InitializerNoIn = AssignmentExpressionNoIn
 
@@ -81,16 +81,16 @@ DefaultClause
     = Default Colon StatementList? {()}
 
 #[pub]
-PrimaryExpression -> PrimaryExpression
-    = This {PrimaryExpression::This}
-    / Identifier {PrimaryExpression::Identifier(String::from(match_str))}
-    / lit:Literal {PrimaryExpression::Literal(lit)}
-    / ArrayLiteral {PrimaryExpression::ArrayLiteral}
-    / ObjectLiteral
-    / OpenParen Expression CloseParen {PrimaryExpression::Expression}
+PrimaryExpression -> SuperExpression
+    = This {SuperExpression::This}
+    / Identifier {SuperExpression::Identifier(String::from(match_str))}
+    / lit:Literal {SuperExpression::Literal(lit)}
+    / lit:ArrayLiteral {SuperExpression::ArrayLiteral(lit)}
+    / lit:ObjectLiteral {SuperExpression::ObjectLiteral(lit)}
+    / OpenParen expr:Expression CloseParen {SuperExpression::Expression(box expr)}
 
 #[pub]
-ArrayLiteral -> Vec<Option<()>>
+ArrayLiteral -> ArrayLiteral
     = OpenBracket CloseBracket {vec![]}
     / OpenBracket elements:ArrayElements CloseBracket {elements}
 
@@ -104,15 +104,13 @@ ArrayElement -> Option<()>
 
 #[pub]
 ElementList
-    = Elision? AssignmentExpression
-    / ElementList Comma Elision? AssignmentExpression
+    = Elision? AssignmentExpression {()}
+    / ElementList Comma Elision? AssignmentExpression {()}
 
 #[pub]
-ObjectLiteral -> PrimaryExpression
-    = OpenBrace CloseBrace 
-        {PrimaryExpression::ObjectLiteral(vec![])}
-    / OpenBrace props:PropertyNameAndValueList Comma? CloseBrace 
-        {PrimaryExpression::ObjectLiteral(props)}
+ObjectLiteral -> ObjectLiteral
+    = OpenBrace CloseBrace {vec![]}
+    / OpenBrace props:PropertyNameAndValueList Comma? CloseBrace {props}
 
 #[pub]
 PropertyNameAndValueList -> Vec<PropertyAssignment>
@@ -164,7 +162,7 @@ NumericLiteral -> Literal = Digit+ _ {
     let val = match_str.parse::<i32>().unwrap();
     Literal::Number(val)
 } // fixme
-    
+
 StringLiteral -> Literal
     = "\"" DoubleStringCharacter* "\"" { Literal::String(String::from(match_str)) }
     / "'" SingleStringCharacter* "'" { Literal::String(String::from(match_str)) }
@@ -174,142 +172,238 @@ SingleStringCharacter = !"'" .
 DoubleStringCharacter = !"\"" .
 
 #[pub]
-MemberExpression
-    = PrimaryExpression {()}
-    / FunctionExpression
-    / MemberExpression OpenBracket Expression CloseBracket
-    / MemberExpression Dot IdentifierName
-    / New MemberExpression Arguments
+MemberExpression -> SuperExpression
+    = expr:NoAccessMemberExpression actions:MemeberExpressionAccess* {
+        actions.into_iter().fold(expr, |acc, action| match action {
+            AccessAction::Dot => SuperExpression::DotAccess(box acc),
+            AccessAction::Brackets => SuperExpression::BracketsAccess(box acc),
+        })
+    }
 
-NewExpression
-    = MemberExpression
-    / New NewExpression
+NoAccessMemberExpression -> SuperExpression
+    = PrimaryExpression
+    / FunctionExpression {SuperExpression::Stub}
+    / New MemberExpression Arguments {SuperExpression::Stub}
 
-CallExpression
-    = MemberExpression Arguments
-    / CallExpression Arguments
-    / CallExpression OpenBracket Expression CloseBracket
-    / CallExpression Dot IdentifierName
+MemeberExpressionAccess -> AccessAction
+    = Dot IdentifierName {AccessAction::Dot}
+    / OpenBracket Expression CloseBracket {AccessAction::Brackets}
 
-LeftHandSideExpression
-    = NewExpression
-    / CallExpression
 
-PostfixExpression
-    = LeftHandSideExpression
-    / LeftHandSideExpression !Eol PlusPlus
-    / LeftHandSideExpression !Eol MinusMinus
+
+NewExpression -> SuperExpression
+    = New expr:NewExpression {SuperExpression::New(box expr)}
+    / MemberExpression
 
 #[pub]
-UnaryExpression
-    = Delete UnaryExpression
-    / Void UnaryExpression
-    / TypeOf UnaryExpression
-    / PlusPlus UnaryExpression
-    / MinusMinus UnaryExpression
-    / Plus UnaryExpression
-    / Minus UnaryExpression
-    / Tilde UnaryExpression
-    / Exclamation UnaryExpression
+CallExpression -> SuperExpression
+    = expr:MemberExpression actions:CallAction* {
+        actions.into_iter().fold(expr, |acc, action| match action {
+            CallAction::Call => SuperExpression::Call(box acc),
+            CallAction::BracketsAccess => SuperExpression::BracketsAccess(box acc),
+            CallAction::DotAccess => SuperExpression::DotAccess(box acc),
+        })
+    }
+
+CallAction -> CallAction
+    = Arguments {CallAction::Call}
+    / OpenBracket Expression CloseBracket {CallAction::BracketsAccess}
+    / Dot IdentifierName {CallAction::DotAccess}
+
+#[pub]
+LeftHandSideExpression -> SuperExpression
+    = NewExpression
+    / CallExpression {SuperExpression::Stub}
+
+#[pub]
+PostfixExpression -> SuperExpression
+    = lhs:LeftHandSideExpression PlusPlus {SuperExpression::PostfixIncrement(box lhs)}
+    / lhs:LeftHandSideExpression MinusMinus {SuperExpression::PostfixDecrement(box lhs)}
+    / LeftHandSideExpression
+
+#[pub]
+UnaryExpression -> SuperExpression
+    = Delete UnaryExpression {SuperExpression::Delete}
+    / Void UnaryExpression {SuperExpression::Void}
+    / TypeOf UnaryExpression {SuperExpression::TypeOf}
+    / PlusPlus UnaryExpression {SuperExpression::PrefixIncrement}
+    / MinusMinus UnaryExpression {SuperExpression::PrefixDecrement}
+    / Plus UnaryExpression {SuperExpression::UnaryPlus}
+    / Minus UnaryExpression {SuperExpression::UnaryMinus}
+    / Tilde UnaryExpression {SuperExpression::UnaryTilde}
+    / Exclamation UnaryExpression {SuperExpression::UnaryExclamation}
     / PostfixExpression
 
 #[pub]
-MultiplicativeExpression
-    = UnaryExpression (MultiplicativeOperation UnaryExpression)*
+MultiplicativeExpression -> SuperExpression
+    = head:UnaryExpression rest:(op:MultiplicativeOperation expr:UnaryExpression {(op, expr)})* {
+        rest.into_iter().fold(head, |acc, (op, expr)| match op {
+            MathOp::Mult => SuperExpression::Mult(box acc, box expr),
+            MathOp::Div => SuperExpression::Div(box acc, box expr),
+            MathOp::Modulus => SuperExpression::Modulus(box acc, box expr),
+            _ => panic!("unexpected multiplicative operation"),
+        })
+    }
 
-MultiplicativeOperation = Mult / Div / Modulus
-
-#[pub]
-AdditiveExpression
-    = MultiplicativeExpression (AdditiveOperation MultiplicativeExpression)*
-
-AdditiveOperation = Plus / Minus
-
-
-ShiftExpression
-    = AdditiveExpression (ShiftOperation AdditiveExpression)*
-
-ShiftOperation = LeftShift / SignedRightShift / UnsignedRightShift
+MultiplicativeOperation -> MathOp
+    = Mult {MathOp::Mult}
+    / Div {MathOp::Div}
+    / Modulus {MathOp::Modulus}
 
 #[pub]
-RelationalExpression
-    = ShiftExpression (RelationalOperation ShiftExpression)*
+AdditiveExpression -> SuperExpression
+    = head:MultiplicativeExpression rest:(op:AdditiveOperation expr:MultiplicativeExpression {(op, expr)})* {
+        rest.into_iter().fold(head, |acc, (op, expr)| match op {
+            MathOp::Plus => SuperExpression::Plus(box acc, box expr),
+            MathOp::Minus => SuperExpression::Minus(box acc, box expr),
+            _ => panic!("unexpected additive operation"),
+        })
+    }
+
+AdditiveOperation -> MathOp 
+    = Plus {MathOp::Plus}
+    / Minus {MathOp::Minus}
+
+
+ShiftExpression -> SuperExpression
+    = head:AdditiveExpression rest:(op:ShiftOperation expr:AdditiveExpression {(op, expr)})* {
+        rest.into_iter().fold(head, |acc, (op, expr)| match op {
+                MathOp::LeftShift => SuperExpression::LeftShift(box acc, box expr),
+                MathOp::SignedRightShift => SuperExpression::SignedRightShift(box acc, box expr),
+                MathOp::UnsignedRightShift => SuperExpression::UnsignedRightShift(box acc, box expr),
+                _ => panic!("unexpected shift operation")
+            }
+        )
+    }
+
+ShiftOperation -> MathOp 
+    = LeftShift {MathOp::LeftShift}
+    / SignedRightShift {MathOp::SignedRightShift}
+    / UnsignedRightShift {MathOp::UnsignedRightShift}
+
+#[pub]
+RelationalExpression -> SuperExpression
+    = head:ShiftExpression rest:(op:RelationalOperation expr:ShiftExpression {(op, expr)})* {
+        rest.into_iter().fold(head, |acc, (op, expr)| match op {
+                MathOp::Less => SuperExpression::Less(box acc, box expr),
+                MathOp::LessEqual => SuperExpression::LessEqual(box acc, box expr),
+                MathOp::Greater => SuperExpression::Greater(box acc, box expr),
+                MathOp::GreaterEqual => SuperExpression::GreaterEqual(box acc, box expr),
+                MathOp::InstanceOf => SuperExpression::InstanceOf(box acc, box expr),
+                MathOp::In => SuperExpression::In(box acc, box expr),
+                _ => panic!("unexpected relational operation")
+            }
+        )
+    }
 
 RelationalExpressionNoIn
     = ShiftExpression (RelationalOperationNoIn ShiftExpression)*
 
-RelationalOperationNoIn
-    = Less
-    / Greater
-    / LessEqual
-    / GreaterEqual
-    / InstanceOf
+RelationalOperationNoIn -> MathOp
+    = Less {MathOp::Less}
+    / Greater {MathOp::Greater}
+    / LessEqual {MathOp::LessEqual}
+    / GreaterEqual {MathOp::GreaterEqual}
+    / InstanceOf {MathOp::InstanceOf}
 
-RelationalOperation = RelationalOperationNoIn / In
+RelationalOperation -> MathOp
+    = RelationalOperationNoIn 
+    / In {MathOp::In}
 
 #[pub]
-EqualityExpression
-    = RelationalExpression (RelationalOperation RelationalExpression)*
+EqualityExpression -> SuperExpression
+    = head:RelationalExpression rest:(op:EqualityOperation expr:RelationalExpression {(op, expr)})* {
+        rest.into_iter().fold(head, |acc, (op, expr)| match op {
+                MathOp::Less => SuperExpression::Less(box acc, box expr),
+                _ => panic!("unexpected equality operation")
+            }
+        )
+    }
 
 EqualityExpressionNoIn
     = RelationalExpressionNoIn (EqualityOperation RelationalExpressionNoIn)*
 
 
-EqualityOperation = Equal / NotEqual / StrictEqual / StrictNotEqual
+EqualityOperation -> MathOp 
+    = Equal {MathOp::Equal}
+    / NotEqual {MathOp::NotEqual}
+    / StrictEqual {MathOp::StrictEqual}
+    / StrictNotEqual {MathOp::StrictNotEqual}
 
 
-BitwiseAndExpression
-    = EqualityExpression (BitwiseAnd EqualityExpression)*
+BitwiseAndExpression -> SuperExpression
+    = head:EqualityExpression rest:(BitwiseAnd expr:EqualityExpression {expr})* {
+        rest.into_iter().fold(head, |acc, expr| 
+            SuperExpression::BitwiseAnd(box acc, box expr)
+        )
+    }
 
 BitwiseAndExpressionNoIn
     = EqualityExpressionNoIn (BitwiseAnd EqualityExpressionNoIn)*
 
 
-
-
-BitwiseXorExpression
-    = BitwiseAndExpression (BitwiseXor BitwiseAndExpression)*
+BitwiseXorExpression -> SuperExpression
+    = head:BitwiseAndExpression rest:(BitwiseXor expr:BitwiseAndExpression {expr})* {
+        rest.into_iter().fold(head, |acc, expr| 
+            SuperExpression::BitwiseXor(box acc, box expr)
+        )
+    }
 
 BitwiseXorExpressionNoIn
     = BitwiseAndExpressionNoIn (BitwiseXor BitwiseAndExpressionNoIn)*
 
 
-
-BitwiseOrExpression
-    = BitwiseXorExpression (BitwiseOr BitwiseXorExpression)*
+BitwiseOrExpression -> SuperExpression
+    = head:BitwiseXorExpression rest:(BitwiseOr expr:BitwiseXorExpression {expr})* {
+        rest.into_iter().fold(head, |acc, expr| 
+            SuperExpression::BitwiseOr(box acc, box expr)
+        )
+    }
 
 BitwiseOrExpressionNoIn
     = BitwiseXorExpressionNoIn (BitwiseOr BitwiseXorExpressionNoIn)*
 
 
-
-
-LogicalAndExpression
-    = BitwiseOrExpression (LogicalAnd BitwiseOrExpression)*
+LogicalAndExpression -> SuperExpression
+    = head:BitwiseOrExpression rest:(LogicalAnd expr:BitwiseOrExpression {expr})* {
+        rest.into_iter().fold(head, |acc, expr| 
+            SuperExpression::LogicalAnd(box acc, box expr)
+        )
+    }
 
 LogicalAndExpressionNoIn
     = BitwiseOrExpressionNoIn (LogicalAnd BitwiseOrExpressionNoIn)*
 
 
 #[pub]
-LogicalOrExpression
-    = LogicalAndExpression (LogicalOr LogicalAndExpression)*
+LogicalOrExpression -> SuperExpression
+    = head:LogicalAndExpression rest:(LogicalOr expr:LogicalAndExpression {expr})* {
+        rest.into_iter().fold(head, |acc, expr| 
+            SuperExpression::LogicalOr(box acc, box expr)
+        )
+    }
 
 LogicalOrExpressionNoIn
     = LogicalAndExpressionNoIn (LogicalOr LogicalAndExpressionNoIn)*
 
 
-ConditionalExpression
-    = LogicalOrExpression (QuestionMark AssignmentExpression Colon AssignmentExpression)*
+#[pub]
+ConditionalExpression -> SuperExpression
+    = cond:LogicalOrExpression rest:(QuestionMark thenBranch:AssignmentExpression Colon elseBranch:AssignmentExpression {(thenBranch, elseBranch)})* {
+        rest.into_iter().rev().fold(cond, |acc, (thenBranch, elseBranch)| 
+            SuperExpression::Ternary(box acc, box thenBranch, box elseBranch)
+        )
+    }
 
 ConditionalExpressionNoIn
     = LogicalOrExpressionNoIn (QuestionMark AssignmentExpression Colon AssignmentExpressionNoIn)*
 
 
-AssignmentExpression
+#[pub]
+AssignmentExpression -> SuperExpression
     = ConditionalExpression
-    / LeftHandSideExpression Assign AssignmentExpression
-    / LeftHandSideExpression AssignmentOperator AssignmentExpression
+    / LeftHandSideExpression Assign AssignmentExpression {SuperExpression::Stub}
+    / LeftHandSideExpression AssignmentOperator AssignmentExpression {SuperExpression::Stub}
 
 AssignmentExpressionNoIn
     = ConditionalExpressionNoIn
@@ -330,15 +424,17 @@ AssignmentOperator
     / BitwiseOrAssign
 
 #[pub]
-Expression
-    = AssignmentExpression (Comma AssignmentExpression)*
+Expression -> SuperExpression
+    = expr:AssignmentExpression (Comma AssignmentExpression)* {SuperExpression::Expression(box expr)} // fixme
 
 ExpressionNoIn
     = AssignmentExpressionNoIn (Comma AssignmentExpressionNoIn)*
 
-Arguments = OpenParen ArgumentList CloseParen
+Arguments 
+    = OpenParen CloseParen
+    / OpenParen ArgumentList CloseParen
 
-ArgumentList = AssignmentExpression ++ Comma
+ArgumentList = AssignmentExpression ++ Comma {()}
 
 FunctionBody = "!" // fixme
 FunctionExpression = "!" // fixme

@@ -3,6 +3,9 @@
 #![feature(plugin)]
 #![plugin(peg_syntax_ext)]
 
+#![feature(box_syntax)]
+
+
 extern crate clap;
 
 use clap::{App, Arg};
@@ -29,9 +32,9 @@ fn main() {
     let input = matches.value_of("input").unwrap();
     println!("input: {}", input);
 
-    let prog = grammar::PrimaryExpression(input).unwrap();
+    let prog = grammar::Expression(input).unwrap();
     // let prog = grammar::ObjectLiteral(input).unwrap();
-    println!("state: {:#?}", prog);
+    println!("result:\n{:#?}", prog);
 
     // let mut evaluator = Evaluator::new();
     // let value = evaluator.eval(&prog);
