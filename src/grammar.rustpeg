@@ -212,8 +212,8 @@ CallAction -> CallAction
 
 #[pub]
 LeftHandSideExpression -> SuperExpression
-    = NewExpression
-    / CallExpression {SuperExpression::Stub}
+    = CallExpression
+    / NewExpression
 
 #[pub]
 PostfixExpression -> SuperExpression
