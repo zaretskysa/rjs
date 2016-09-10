@@ -401,31 +401,50 @@ ConditionalExpressionNoIn
 
 #[pub]
 AssignmentExpression -> SuperExpression
-    = LeftHandSideExpression Assign AssignmentExpression {SuperExpression::Stub}
-    / LeftHandSideExpression AssignmentOperator AssignmentExpression {SuperExpression::Stub}
-    / ConditionalExpression
+    = head:ConditionalExpression rest:(op:AssignmentAction expr:AssignmentExpression {(op, expr)})* {
+        rest.into_iter().fold(head, |acc, (op, expr)| match op {
+                MathOp::Assign => SuperExpression::Assign,
+                MathOp::MultAssign => SuperExpression::MultAssign,
+                MathOp::DivAssign => SuperExpression::DivAssign,
+                MathOp::ModulusAssign => SuperExpression::ModulusAssign,
+                MathOp::PlusAssign => SuperExpression::PlusAssign,
+                MathOp::MinusAssign => SuperExpression::MinusAssign,
+                MathOp::LeftShiftAssign => SuperExpression::LeftShiftAssign,
+                MathOp::SignedRightShiftAssign => SuperExpression::SignedRightShiftAssign,
+                MathOp::UnsignedRightShiftAssign => SuperExpression::UnsignedRightShiftAssign,
+                MathOp::BitwiseAndAssign => SuperExpression::BitwiseAndAssign,
+                MathOp::BitwiseXorAssign => SuperExpression::BitwiseXorAssign,
+                MathOp::BitwiseOrAssign => SuperExpression::BitwiseOrAssign,
+                _ => panic!("unexpected assignment operation")
+            }
+        )
+    }
 
 AssignmentExpressionNoIn
     = ConditionalExpressionNoIn
     / LeftHandSideExpression Assign AssignmentExpressionNoIn
     / LeftHandSideExpression AssignmentOperator AssignmentExpressionNoIn
 
-AssignmentOperator
-    = MultAssign
-    / DivAssign
-    / ModulusAssign
-    / PlusAssign
-    / MinusAssign
-    / LeftShiftAssign
-    / SignedRightShiftAssign
-    / UnsignedRightShiftAssign
-    / BitwiseAndAssign
-    / BitwiseXorAssign
-    / BitwiseOrAssign
+AssignmentAction -> MathOp
+    = Assign {MathOp::Assign}
+    / AssignmentOperator
+
+AssignmentOperator -> MathOp
+    = MultAssign {MathOp::MultAssign}
+    / DivAssign {MathOp::DivAssign}
+    / ModulusAssign {MathOp::ModulusAssign}
+    / PlusAssign {MathOp::PlusAssign}
+    / MinusAssign {MathOp::MinusAssign}
+    / LeftShiftAssign {MathOp::LeftShiftAssign}
+    / SignedRightShiftAssign {MathOp::SignedRightShiftAssign}
+    / UnsignedRightShiftAssign {MathOp::UnsignedRightShiftAssign}
+    / BitwiseAndAssign {MathOp::BitwiseAndAssign}
+    / BitwiseXorAssign {MathOp::BitwiseXorAssign}
+    / BitwiseOrAssign {MathOp::BitwiseOrAssign}
 
 #[pub]
 Expression -> SuperExpression
-    = expr:AssignmentExpression (Comma AssignmentExpression)* {SuperExpression::Expression(box expr)} // fixme
+    = expr:AssignmentExpression (Comma AssignmentExpression)* {expr} // fixme
 
 ExpressionNoIn
     = AssignmentExpressionNoIn (Comma AssignmentExpressionNoIn)*

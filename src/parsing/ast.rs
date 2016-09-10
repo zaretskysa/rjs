@@ -142,6 +142,19 @@ pub enum MathOp {
     LeftShift,
     SignedRightShift,
     UnsignedRightShift,
+
+    Assign,
+    MultAssign,
+    DivAssign,
+    ModulusAssign,
+    PlusAssign,
+    MinusAssign,
+    LeftShiftAssign,
+    SignedRightShiftAssign,
+    UnsignedRightShiftAssign,
+    BitwiseAndAssign,
+    BitwiseXorAssign,
+    BitwiseOrAssign,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -170,6 +183,20 @@ pub enum SuperExpression {
     Mult(PSuperExpression, PSuperExpression),
     Div(PSuperExpression, PSuperExpression),
     Modulus(PSuperExpression, PSuperExpression),
+
+    Assign,
+    MultAssign,
+    DivAssign,
+    ModulusAssign,
+    PlusAssign,
+    MinusAssign,
+    LeftShiftAssign,
+    SignedRightShiftAssign,
+    UnsignedRightShiftAssign,
+    BitwiseAndAssign,
+    BitwiseXorAssign,
+    BitwiseOrAssign,
+
     Delete,
     Void,
     TypeOf,
