@@ -401,9 +401,9 @@ ConditionalExpressionNoIn
 
 #[pub]
 AssignmentExpression -> SuperExpression
-    = ConditionalExpression
-    / LeftHandSideExpression Assign AssignmentExpression {SuperExpression::Stub}
+    = LeftHandSideExpression Assign AssignmentExpression {SuperExpression::Stub}
     / LeftHandSideExpression AssignmentOperator AssignmentExpression {SuperExpression::Stub}
+    / ConditionalExpression
 
 AssignmentExpressionNoIn
     = ConditionalExpressionNoIn
