@@ -14,11 +14,7 @@ mod parsing;
 mod evaluating;
 
 // use evaluating::evaluator::*;
-// use parsing::parser::*;
-
-
-
-peg_file! grammar("grammar.rustpeg");
+use parsing::parser;
 
 fn main() {
     let matches = App::new("rjs")
@@ -32,8 +28,7 @@ fn main() {
     let input = matches.value_of("input").unwrap();
     println!("input: {}", input);
 
-    let prog = grammar::Expression(input).unwrap();
-    // let prog = grammar::ObjectLiteral(input).unwrap();
+    let prog = parser::expression(input);
     println!("result:\n{:#?}", prog);
 
     // let mut evaluator = Evaluator::new();
