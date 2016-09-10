@@ -98,24 +98,6 @@ pub enum Literal {
 
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum PrimaryExpression {
-    This,
-    Identifier(String),
-    Literal(Literal),
-    ArrayLiteral,
-    ObjectLiteral(Vec<PropertyAssignment>),
-    Expression,
-}
-
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum Expression {
-    Expression,
-}
-
-pub type PExpression = Box<Expression>;
-
-#[derive(Debug, PartialEq, Clone)]
 pub enum PropertyAssignment {
     FieldValue,
     Getter,
@@ -224,15 +206,6 @@ pub type PSuperExpression = Box<SuperExpression>;
 pub type ArrayLiteral = Vec<Option<()>>;
 
 pub type ObjectLiteral = Vec<PropertyAssignment>;
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum MemberExpression {
-    Primary,
-    Function,
-    AccessByBrackets,
-    AccessByDot,
-    New,
-}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum CallAction {
