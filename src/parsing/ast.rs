@@ -6,22 +6,23 @@ pub enum Program {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum SourceElement {
-    StatementSE(Statement),
-    FunctionDeclSE(FunctionDeclaration),
+    Statement(Statement),
+    FunctionDecl(FunctionDeclaration),
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum FunctionDeclaration {
-    FunctionDeclaration(String, Vec<String>, Vec<Statement>),
+    FunctionDeclaration(String, Vec<String>, Vec<SourceElement>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
-    EmptySt,
-    BlockSt(Vec<Statement>),
-    ExpressionSt(AssignmentExpr),
-    VarDeclSt(String, AssignmentExpr),
-    IfSt(LogicalOrExpr, PStatement, Option<PStatement>),
+    Stub,
+    Empty,
+    Block(Vec<Statement>),
+    Expression(SuperExpression),
+    VarDecl(String, AssignmentExpr),
+    If(LogicalOrExpr, PStatement, Option<PStatement>),
 }
 
 pub type PStatement = Box<Statement>;

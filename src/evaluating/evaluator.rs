@@ -26,8 +26,8 @@ impl Evaluator {
 
     fn eval_source_element(&mut self, el: &SourceElement) -> Value {
         match el {
-            &SourceElement::StatementSE(ref stmt) => self.eval_statement(stmt),
-            &SourceElement::FunctionDeclSE(ref decl) => self.eval_func_decl(decl),
+            &SourceElement::Statement(ref stmt) => self.eval_statement(stmt),
+            &SourceElement::FunctionDecl(ref decl) => self.eval_func_decl(decl),
         }
     }
 
@@ -39,12 +39,18 @@ impl Evaluator {
 
     fn eval_statement(&mut self, st: &Statement) -> Value {
         match st {
-            &Statement::EmptySt => Value::Undefined,
-            &Statement::BlockSt(ref stmts) => self.eval_statements(stmts),
-            &Statement::ExpressionSt(ref expr) => self.eval_expression(expr),
-            &Statement::VarDeclSt(ref id, ref expr) => self.eval_var_decl(id, expr),
-            &Statement::IfSt(ref _expr, ref _st, ref _else_st) => Value::Undefined,
+            &Statement::Stub => Value::Undefined,
+            &Statement::Empty => Value::Undefined,
+            &Statement::Block(ref stmts) => self.eval_statements(stmts),
+            // &Statement::Expression(ref expr) => self.eval_expression(expr),
+            &Statement::VarDecl(ref id, ref expr) => self.eval_var_decl(id, expr),
+            &Statement::If(ref _expr, ref _st, ref _else_st) => Value::Undefined,
+            _ => panic!("fixme: unexpected Statement"),
         }
+    }
+
+    fn eval_source_elements(&mut self, _ses: &Vec<SourceElement>) -> Value {
+        Value::Undefined
     }
 
     fn eval_statements(&mut self, stmts: &Vec<Statement>) -> Value {
@@ -142,7 +148,7 @@ impl Evaluator {
                     let param_value = self.eval_expression(&params[i]);
                     self.env.insert(param_name.clone(), param_value);
                 }
-                self.eval_statements(&body)
+                self.eval_source_elements(&body)
             },
             _ => panic!("Not a function"),
         };

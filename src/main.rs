@@ -28,7 +28,7 @@ fn main() {
     let input = matches.value_of("input").unwrap();
     println!("input: {}", input);
 
-    let prog = parser::expression(input);
+    let prog = parser::parse(input);
     println!("result:\n{:#?}", prog);
 
     // let mut evaluator = Evaluator::new();

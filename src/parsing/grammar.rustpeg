@@ -1,11 +1,25 @@
 use parsing::ast::*;
 
 #[pub]
-Statement -> ()
-    // = Block
+Program -> Program
+    = ses:SourceElement* {Program::Program(ses)}
+
+#[pub]
+SourceElement -> SourceElement
+    = stmt:Statement {SourceElement::Statement(stmt)}
+    / decl:FunctionDeclaration {SourceElement::FunctionDecl(decl)}
+
+FunctionDeclaration -> FunctionDeclaration
+    = Function id:Identifier OpenParen params:(Identifier ** Comma) OpenBrace body:SourceElement* CloseBrace {
+        FunctionDeclaration::FunctionDeclaration(id, params, body)
+    }
+
+#[pub]
+Statement -> Statement
+    = Block
     // / VariableStatement
-    // / EmptyStatement
-    = ExpressionStatement
+    / EmptyStatement
+    / ExpressionStatement
     // / IfStatement
     // / IterationStatement
     // / ContinueStatement
@@ -20,9 +34,11 @@ Statement -> ()
 
 StatementList = Statement+
 
-Block = OpenBrace Statement* CloseBrace
+Block -> Statement
+    = OpenBrace stmts:Statement* CloseBrace {Statement::Block(stmts)}
 
-VariableStatement = Var VariableDeclarationList
+VariableStatement -> Statement 
+    = Var VariableDeclarationList {Statement::Stub}
 
 VariableDeclarationList = VariableDeclaration (Comma VariableDeclaration)*
 
@@ -36,36 +52,38 @@ Initializer = AssignmentExpression {()}
 
 InitializerNoIn = AssignmentExpressionNoIn
 
-EmptyStatement = Semicolon
+EmptyStatement -> Statement 
+    = Semicolon {Statement::Empty}
 
-ExpressionStatement = !(OpenBrace / Function) Expression Semicolon
+ExpressionStatement -> Statement 
+    = !(OpenBrace / Function) expr:Expression Semicolon {Statement::Expression(expr)}
 
-IfStatement
-    = If OpenParen Expression CloseParen Statement Else Statement
-    / If OpenParen Expression CloseParen Statement
+IfStatement -> Statement
+    = If OpenParen Expression CloseParen Statement Else Statement {Statement::Stub}
+    / If OpenParen Expression CloseParen Statement {Statement::Stub}
 
-IterationStatement
-    = Do Statement While OpenParen Expression CloseParen Semicolon
-    / While OpenParen Expression CloseParen Statement
-    / For OpenParen ExpressionNoIn? Semicolon Expression? Semicolon Expression? CloseParen Statement
-    / For OpenParen Var VariableDeclarationListNoIn Semicolon Expression? Semicolon Expression? CloseParen Statement
-    / For OpenParen LeftHandSideExpression In Expression CloseParen Statement
-    / For OpenParen Var VariableDeclarationNoIn In Expression CloseParen Statement
+IterationStatement -> Statement
+    = Do Statement While OpenParen Expression CloseParen Semicolon {Statement::Stub}
+    / While OpenParen Expression CloseParen Statement {Statement::Stub}
+    / For OpenParen ExpressionNoIn? Semicolon Expression? Semicolon Expression? CloseParen Statement {Statement::Stub}
+    / For OpenParen Var VariableDeclarationListNoIn Semicolon Expression? Semicolon Expression? CloseParen Statement {Statement::Stub}
+    / For OpenParen LeftHandSideExpression In Expression CloseParen Statement {Statement::Stub}
+    / For OpenParen Var VariableDeclarationNoIn In Expression CloseParen Statement {Statement::Stub}
 
 ContinueStatement
     = Continue Semicolon
-    / Continue Identifier Semicolon // fixme: no line terminator
+    / Continue Identifier Semicolon {()} // fixme: no line terminator
 
 BreakStatement
     = Break Semicolon
-    / Break Identifier Semicolon // fixme
+    / Break Identifier Semicolon {()} // fixme
 
 ReturnStatement
     = Return Semicolon
-    / Return Identifier Semicolon // fixme
+    / Return Identifier Semicolon {()} // fixme
 
 WithStatement
-    = With OpenParen Expression CloseParen Statement
+    = With OpenParen Expression CloseParen Statement {()}
 
 SwitchStatement
     = Switch OpenParen Expression CloseParen CaseBlock
@@ -83,7 +101,7 @@ DefaultClause
 #[pub]
 PrimaryExpression -> SuperExpression
     = This {SuperExpression::This}
-    / Identifier {SuperExpression::Identifier(String::from(match_str))}
+    / id:Identifier {SuperExpression::Identifier(id)}
     / lit:Literal {SuperExpression::Literal(lit)}
     / lit:ArrayLiteral {SuperExpression::ArrayLiteral(lit)}
     / lit:ObjectLiteral {SuperExpression::ObjectLiteral(lit)}
@@ -137,7 +155,7 @@ PropertyName
     / NumericLiteral {()}
 
 #[pub]
-PropertySetParameterList = Identifier
+PropertySetParameterList = Identifier {()}
 
 
 Elision = Comma+
@@ -565,9 +583,11 @@ BitwiseXorAssign = "^=" _
 BitwiseAndAssign = "&|" _
 Semicolon = ";" _
 
-IdentifierName = IdentifierStart IdentifierPart*
+IdentifierName -> String 
+    = IdentifierStart IdentifierPart* {String::from(match_str)}
 
-Identifier =  !(ReservedWord !IdentifierPart) IdentifierName _
+Identifier -> String 
+    = !(ReservedWord !IdentifierPart) id:IdentifierName _ {id}
 
 IdentifierStart
     = Letter

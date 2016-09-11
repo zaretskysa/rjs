@@ -1,7 +1,7 @@
 use parsing::ast::*;
 
-pub fn expression(input: &str) -> SuperExpression {
-    return grammar::Expression(input).unwrap();
+pub fn parse(input: &str) -> Program {
+    return grammar::Program(input).unwrap();
 }
 
 peg_file! grammar("grammar.rustpeg");
