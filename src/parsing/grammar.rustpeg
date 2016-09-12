@@ -248,8 +248,8 @@ UnaryExpression -> SuperExpression
     / MinusMinus UnaryExpression {SuperExpression::PrefixDecrement}
     / Plus UnaryExpression {SuperExpression::UnaryPlus}
     / Minus UnaryExpression {SuperExpression::UnaryMinus}
-    / Tilde UnaryExpression {SuperExpression::UnaryTilde}
-    / Exclamation UnaryExpression {SuperExpression::UnaryExclamation}
+    / Tilde UnaryExpression {SuperExpression::BitwiseNot}
+    / Exclamation UnaryExpression {SuperExpression::LogicalNot}
     / PostfixExpression
 
 #[pub]

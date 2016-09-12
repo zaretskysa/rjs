@@ -157,4 +157,3 @@ impl Evaluator {
         return result;
     }
 }
-
