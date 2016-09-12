@@ -13,8 +13,8 @@ use clap::{App, Arg};
 mod parsing;
 mod evaluating;
 
-// use evaluating::evaluator::*;
 use parsing::parser;
+use evaluating::evaluator::*;
 
 fn main() {
     let matches = App::new("rjs")
@@ -31,7 +31,7 @@ fn main() {
     let prog = parser::parse(input);
     println!("result:\n{:#?}", prog);
 
-    // let mut evaluator = Evaluator::new();
-    // let value = evaluator.eval(&prog);
-    // println!("result: {:?}", value);
+     let mut evaluator = Evaluator::new();
+     let value = evaluator.eval(&prog);
+     println!("result: {:?}", value);
 }

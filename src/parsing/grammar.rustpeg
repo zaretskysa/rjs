@@ -102,7 +102,7 @@ DefaultClause
 PrimaryExpression -> SuperExpression
     = This {SuperExpression::This}
     / id:Identifier {SuperExpression::Identifier(id)}
-    / lit:Literal {SuperExpression::Literal(lit)}
+    / Literal
     / lit:ArrayLiteral {SuperExpression::ArrayLiteral(lit)}
     / lit:ObjectLiteral {SuperExpression::ObjectLiteral(lit)}
     / OpenParen expr:Expression CloseParen {SuperExpression::Expression(box expr)}
@@ -161,29 +161,32 @@ PropertySetParameterList = Identifier {()}
 Elision = Comma+
 
 #[pub]
-Literal -> Literal
+Literal -> SuperExpression
     = NullLiteral
     / BooleanLiteral
     / NumericLiteral
     / StringLiteral
 
-NullLiteral -> Literal = "null" _ { Literal::Null }
+NullLiteral -> SuperExpression 
+    = "null" _ {SuperExpression::NullLiteral}
 
-BooleanLiteral -> Literal = ("true" / "false") _ {
-    match match_str {
-        "true" => Literal::Bool(true),
-        _ => Literal::Bool(false),
-    }    
-}
+BooleanLiteral -> SuperExpression 
+    = ("true" / "false") _ {
+        match match_str {
+            "true" => SuperExpression::BoolLiteral(true),
+            _ => SuperExpression::BoolLiteral(false),
+        }    
+    }
 
-NumericLiteral -> Literal = Digit+ _ {
-    let val = match_str.parse::<i32>().unwrap();
-    Literal::Number(val)
-} // fixme
+NumericLiteral -> SuperExpression 
+    = Digit+ _ {
+        let val = match_str.parse::<i32>().unwrap();
+        SuperExpression::NumberLiteral(val)
+    } // fixme
 
-StringLiteral -> Literal
-    = "\"" DoubleStringCharacter* "\"" { Literal::String(String::from(match_str)) }
-    / "'" SingleStringCharacter* "'" { Literal::String(String::from(match_str)) }
+StringLiteral -> SuperExpression
+    = "\"" DoubleStringCharacter* "\"" { SuperExpression::StringLiteral(String::from(match_str)) }
+    / "'" SingleStringCharacter* "'" { SuperExpression::StringLiteral(String::from(match_str)) }
 
 SingleStringCharacter = !"'" .
 
